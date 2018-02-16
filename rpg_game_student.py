@@ -29,13 +29,17 @@ class Goblin:
       print("The goblin does {} damage to you.".format(self.power))
       if hero.alive() != True:
         print ("You are dead.")
-    
+      
   def alive(self):
     if self.health > 0:
       return True
   def print_status(self):
     print("The goblin has {} health and {} power.".format(self.health, self.power))
-    
+
+ class Medic:
+   def __init__(self, health, power):
+     self.health = health
+     self.power = power   
 def run():
   
   hero = Hero(10, 5)

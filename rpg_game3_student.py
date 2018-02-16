@@ -1,4 +1,5 @@
 # Hero RPG Gam
+# Program runs but still need to work out bugs & add 2 characters & 2 items
 import random
 import time
 
@@ -22,27 +23,42 @@ class Character(object):
 
   def receive_damage(self, points):
         #making it so if hero is attacking hero inflicts 2 times damage 20% probability
-        print(self.name, points)
-        if points == hero.power: 
-          extra_power = random.random()   
-          if extra_power > .8:
+        print(self.name, points) 
+        extra_power = random.random()   
+        if extra_power > .8:
+        #set condition for shadow here
             if self.name == 'shadow':
-              self.health -= (2 * points)
-              print("{} received {} damage.".format(self.name, points * 2))
-          else:
-            self.health -= points
-            print("{} received {} damage.".format(self.name, points))
-        elif points == enemy.power:
-          sneaky = random.random()
-          if sneaky > .9:
-              self.health -= points
-          else: 
-            self.health = self.health
+                sneaky = random.random()
+                #giving shadow 10% probability  to avoid damage
+                if sneaky > .9:
+                    self.health = self.health
+                    print("{} received no damage.".format(self.name))
+                else: 
+                    self.health -= points * 2
+                    print("{} received {} damage.".format(self.name, points * 2))
+            else: 
+                self.health -= (2 * points)
+        elif extra_power < .8:
+            if self.name == 'shadow':
+                sneaky = random.random()
+                if sneaky > .9:
+                    self.health = self.health
+                    print("{} received no damage.".format(self.name))
+                else: 
+                    self.health -= points * 2
+                    print("{} received {} damage.".format(self.name, points * 2))
+            else: 
+                if self.name == 'hero':
+                    self.health -= points - self.armor
+                else:
+                    self.health -= points
+                    print("{} received {} damage.".format(self.name, points))      
         if self.health <= 0:
             print("{} is dead.".format(self.name))
+            hero.coins += self.bounty
 
   def print_status(self):
-      print("{} has {} health and {} power.".format(self.name, self.health, self.power))
+      print("{} has {} health and {} power, {} armor".format(self.name, self.health, self.power, self.armor))
   
 
     
@@ -52,6 +68,8 @@ class Hero(Character):
     self.health = 10
     self.power = 5
     self.coins = 20 
+    self.armor = 10
+    self.evade = 10
   
   def restore(self):
         self.health = 10
@@ -67,19 +85,46 @@ class Goblin(Character):
     self.name = 'goblin'
     self.health = 6
     self.power = 2
+    self.bounty = 5
+    self.armor = 0
+    self.evade = 0
 
+class Zombie(Character):
+    def __init__(self):
+        self.name = 'Zombie'
+        self.health = float('inf')
+        self.power = 1
+        self.bounty = 1
+        self.armor = 0
+        self.evade = 0
+
+class Medic(Character):
+    def __init__(self):
+        self.name = 'Medic'
+        self.health = 10
+        #medic power is 0 because medic will not hurt you
+        self.power = 0
+        #negative bounty if you kill the medic
+        self.bounty = -5
+        self.armor = 0
+        self.evade = 0
   
 class Shadow(Character):
   def __init__(self):
     self.name = 'shadow'
     self.health = 6
     self.power = 2
-
+    self.bounty = 20
+    self.armor = 0
+    self.evade = 0    
 class Wizard(Character):
     def __init__(self):
       self.name = 'wizard'
       self.health = 8
       self.power = 1
+      self.bounty = 10 
+      self.armor = 0
+      self.evade = 0
     def attack(self, enemy):
       swap_power = random.random() > 0.5
       if swap_power:
@@ -115,7 +160,16 @@ class Battle(object):
             break
           else:
             print("Invalid input {}".format(raw_input))
-          enemy.attack(hero)
+          #adding evade 
+          evad_quot = random.random()
+          if hero.evade < 2:
+              enemy.attack(hero)
+          elif hero.evade == 2:
+              if evad_quot < .9:
+                  enemy.attack(hero)
+          elif hero.evade >= 4:
+              if evad_quot < .85:
+                  enemy.attack(hero)
           if hero.alive():
             print("You defeated the {}".format(enemy.name))
             return True
@@ -129,6 +183,29 @@ class Tonic(object):
         character.health += 2
         print("{}'s health increased to {}.".format(character.name, character.health))
 
+class Armor(object):
+    cost = 5
+    name = 'armor'
+    def apply(self, character):
+        hero.armor += 2
+        print("{}'s armor increased to {}.".format(character.name, character.armor))
+
+class Evade(object):
+    cost = 40
+    name = 'evade'
+    def apply(self, character):
+        hero.evade += 2
+        print("{}'s evade increased to {}.".format(character.name, character.evade))
+
+
+class Supertonic(object):
+    cost = 10
+    name = 'supertonic'
+    def apply(self, character):
+        character.health += 10
+        print("{}'s health increased to {} with supertonic".format(character.name, character.health))
+
+
 class Sword(object):
     cost = 10
     name = 'sword'
@@ -139,7 +216,7 @@ class Store(object):
     # If you define a variable in the scope of a class:
     # This is a class variable and you can access it like
     # Store.items => [Tonic, Sword]
-    items = [Tonic, Sword]
+    items = [Tonic, Sword, Supertonic, Armor, Evade]
     def do_shopping(self, hero):
         while True:
             print("=====================")
@@ -155,12 +232,17 @@ class Store(object):
             if choice == 10:
                 break
             else:
-                ItemToBuy = Store.items[choice - 1]
-                item = ItemToBuy()
-                hero.buy(item)
+                #trying to make it so hero can't buy stuff if no coins
+                if hero.coins == 0:
+                    print("You don't have enough coins to shop")
+                    break
+                else:    
+                    ItemToBuy = Store.items[choice - 1]
+                    item = ItemToBuy()
+                    hero.buy(item)
 if __name__ == "__main__":
   hero = Hero()
-  enemies = [Goblin(), Wizard(), Shadow()]
+  enemies = [Goblin(), Shadow(), Medic (), Zombie(), Wizard()]
   battle_engine = Battle()
   shopping_engine = Store()
 
